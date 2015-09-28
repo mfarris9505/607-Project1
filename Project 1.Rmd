@@ -1,0 +1,120 @@
+---
+title: "607-Project1"
+author: "Matthew Farris"
+date: "September 20, 2015"
+output: html_document
+---
+<center> <h1>Project 1: Checkmate</h1> </center>
+
+For this project I used the following code to initialize my data. I included comments to explain what I was doing, and why. 
+```{r}
+library(RCurl)
+library(stringr)
+
+#Extracting the URL text 
+chessURL <-getURL("https://raw.githubusercontent.com/mfarris9505/Project1Data/master/Chess%20Players.txt")
+
+#Reading the txt file into "CSV"
+chess <-read.csv(text = chessURL)
+
+#There was this odd first line of X..... which I eliminated
+names(chess)[1] <- "header"
+
+
+```
+
+From my experience with Python and game creation, I was more comfortable looking at this data set and dealing with position. I am new to the regex, and I understand why it would and could be useful, but in this instance, I decided to first test position, and to see if I could develop a standard set and then replicate the position for the various lines in the rough data. So, we took some data points to start. 
+
+```
+str_extract(chess$header, "GARY")
+
+str_locate(chess$header, "GARY") 
+```
+*Note I didn't run this code in the Markdown, as it produces just multiple lines and isn't all that pretty. I ran it in the console, and viewed the output, and took note of the positions. 
+
+Much to my delight... I found that the 2 Gary's in the data set were in the same position 9 to 12. 
+
+I tested this with the score as well, to see if they were in similar positions, and I found out that I was indeed correct, everything corrolated to a relative postion (Again, I tested the points by plugging in test values such as "39", "21", and "18", and ran it in the console. This process was not shown here) and found that the each are 6 positions away starting at position 51. 
+
+Repeating this for each data point I needed (Name, State, Score, and AvG) I found the positions which can be seen in the code below. This was actually quite simple and took me roughly 5 minutes. I figured it save me about an hour trying to code regex to pick out specific delimiters. 
+
+Using a for loop, I ran over the data, and extracted everything I needed. 
+
+```{r}
+N64 <- 1:64
+
+chessdata <- data.frame(N64)
+chessopponents <- data.frame(N64)
+
+x <-4
+for (i in 1:64) {
+  chessdata$Name[i] <- str_sub(chess$header[x], start = 9, end = 35)
+  chessdata$State[i] <- str_sub(chess$header[x+1], start = 4, end = 5)
+  chessdata$Score[i] <- str_sub(chess$header[x], start = 42, end = 44)
+  chessdata$AVG[i] <- str_sub(chess$header[x+1], start = 23, end = 26)
+  
+  
+  chessopponents$RD1[i] <-str_sub(chess$header[x], start = 51, end = 52)
+  chessopponents$RD2[i] <-str_sub(chess$header[x], start = 57, end = 58)
+  chessopponents$RD3[i] <-str_sub(chess$header[x], start = 63, end = 64)
+  chessopponents$RD4[i] <-str_sub(chess$header[x], start = 69, end = 70)
+  chessopponents$RD5[i] <-str_sub(chess$header[x], start = 75, end = 76)
+  chessopponents$RD6[i] <-str_sub(chess$header[x], start = 81, end = 82)
+  chessopponents$RD7[i] <-str_sub(chess$header[x], start = 87, end = 88)
+  
+  x <-x+3
+}
+
+# Formating to force String to numeric for the calculations
+chessdata$AVG <- as.numeric(as.character(chessdata$AVG))
+
+chessopponents$RD1 <- as.numeric(as.character(chessopponents$RD1))
+chessopponents$RD2 <- as.numeric(as.character(chessopponents$RD2))
+chessopponents$RD3 <- as.numeric(as.character(chessopponents$RD3))
+chessopponents$RD4 <- as.numeric(as.character(chessopponents$RD4))
+chessopponents$RD5 <- as.numeric(as.character(chessopponents$RD5))
+chessopponents$RD6 <- as.numeric(as.character(chessopponents$RD6))
+chessopponents$RD7 <- as.numeric(as.character(chessopponents$RD7))
+
+head(chessdata)
+head(chessopponents)
+```
+
+From here, calculating the averages could be accomplished in several ways, however, again from my experience with Python, I went ahead and composed a double iterated "for" loop, with an "if" statement to weed out any of the coerced NA values. Again, probably not the best way to accomplish this task, but as the data set was not signiciantly large, I felt it would accomplish the task quite well. 
+
+```{r}
+
+x <- 0
+avgadd <- 0 
+
+for (i in 1:64){
+  for (j in 1:7){
+    #Test to rule out NA values
+    if (is.na(chessopponents[i,j+1])){
+      
+    #Else statement only adds the number of player  
+      }else{
+      avgadd<- avgadd + chessdata$AVG[chessopponents[i,j+1]]
+      x<- x + 1
+    }
+  }
+  chessdata$Avg_OP[i] <- avgadd/x
+  avgadd <-0
+  x<-0 
+
+  }
+head(chessdata)
+```
+
+I included the entire list at the bottom, for readability. To write the table to a CSV, the following code was written. A couple notes, I left the data as it was in the beginning as I knew it wasn't particularly large. However, now that we are saving the data for future use, some things that would be benficial would be to eliminate "excessive data." In the beginning, I captured elongated names (ie. the spaces behind the names, as I was unsure how long each name was). Had this been an extremely large dataset this could impact processing so, the str_trim() was used to trim the fat as it were, and then the trimmed file could be saved. I uploaded the file to my github repository and pasted the link with the hwk assignment:
+
+```{r}
+chessdata$Name <- str_trim(chessdata$Name)
+head(chessdata)
+
+write.table(chessdata, "MyChessdata.csv")
+
+#All of the data for review
+chessdata
+```
+
